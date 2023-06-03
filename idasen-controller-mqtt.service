@@ -1,0 +1,19 @@
+[Unit]
+Description=Idasen Desk MQTT service
+Requires=multi-user.target
+After=multi-user.target
+
+[Service]
+#Type=forking
+#PIDFile=/var/run/idasen_desk.pid
+Type=simple
+
+Restart=always
+RestartSec=5
+TimeoutSec=30s
+
+ExecStart=/bin/idasen-controller-mqtt --mqtt
+#ExecStop=/bin/idasen-controller-mqtt --stop
+
+[Install]
+WantedBy=multi-user.target
