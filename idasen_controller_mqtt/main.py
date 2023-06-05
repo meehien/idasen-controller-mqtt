@@ -77,6 +77,9 @@ config = {
 	"mqtt_port": "1883",
 	"mqtt_username": "",
 	"mqtt_password": "",
+	"mqtt_topic_set_height": "desk-mqtt/set-desk-height",
+	"mqtt_topic_get_relative_height": "desk-mqtt/get-desk-relative-height",
+	"mqtt_topic_get_desk_moving": "desk-mqtt/get-desk-moving",
 	"favourites": {},
 }
 
@@ -247,10 +250,9 @@ password = config["mqtt_password"]
 reconnect_interval = 5
 beacon_interval = 60
 
-topic_lis_height = "linak-2-mqtt/set-desk-height"
-topic_lis_position = "linak-2-mqtt/toggle-desk-position"
-topic_pub_upd = "linak-2-mqtt/desk-relative-height-updated"
-topic_pub_mv = "linak-2-mqtt/desk-is-moving"
+set_height = config["mqtt_topic_set_height"]
+get_relative_height = config["mqtt_topic_get_relative_height"]
+get_desk_moving = config["mqtt_topic_get_desk_moving"]
 
 async def publish_status(mqtt_client, client):
 	while True:
@@ -258,7 +260,7 @@ async def publish_status(mqtt_client, client):
 			"<Hh", await client.read_gatt_char(UUID_HEIGHT)
 		)
 		#print("Height: {:4.0f}cm".format(rawToMM(height)/10))
-		await mqtt_client.publish(topic_pub_upd, "{:4.0f}".format((rawToMM(height)-BASE_HEIGHT)/10))
+		await mqtt_client.publish(get_relative_height, "{:4.0f}".format((rawToMM(height)-BASE_HEIGHT)/10))
 		await asyncio.sleep(beacon_interval)
 
 async def listen(client):
@@ -270,12 +272,10 @@ async def listen(client):
 				async with mqtt_client.messages() as messages:
 					await mqtt_client.subscribe("#")
 					async for message in messages:
-						if message.topic.matches(topic_lis_height):
+						if message.topic.matches(set_height):
 							move_command = {"move_to": message.payload.decode()+'0'}
 							merged_config = {**config, **move_command}
 							await run_command(client, merged_config, print, mqtt_client)
-						if message.topic.matches(topic_lis_position):
-							print(message.payload)
 		except aiomqtt.MqttError as error:
 			print(f'Error "{error}". Reconnecting in {reconnect_interval} seconds.')
 			await asyncio.sleep(reconnect_interval)
@@ -350,11 +350,11 @@ async def move_to(client, target, log=print, mqtt_client=None):
 		await move_to_target(client, target)
 		await asyncio.sleep(0.5)
 		height, speed = await get_height_speed(client)
-		await mqtt_client.publish(topic_pub_upd, "{:4.0f}".format((rawToMM(height)-BASE_HEIGHT)/10))
+		await mqtt_client.publish(get_relative_height, "{:4.0f}".format((rawToMM(height)-BASE_HEIGHT)/10))
 		if speed == 0:
 			break
 		if speed != 0:
-			await mqtt_client.publish(topic_pub_mv, 'on')
+			await mqtt_client.publish(get_desk_moving, 'on')
         #log("Height: {:4.0f}mm Speed: {:2.0f}mm/s".format(rawToMM(height), rawToSpeed(speed)))
 
 
@@ -447,7 +447,7 @@ async def run_command(client, config, log=print, mqtt_client=None):
 		)
 		#MQTT
 		if mqtt_client:
-			await mqtt_client.publish(topic_pub_upd, "{:4.0f}".format((rawToMM(final_height)-BASE_HEIGHT)/10))
+			await mqtt_client.publish(get_relative_height, "{:4.0f}".format((rawToMM(final_height)-BASE_HEIGHT)/10))
 
 
 

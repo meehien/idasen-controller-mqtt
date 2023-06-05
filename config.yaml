@@ -12,3 +12,6 @@ mqtt_broker: '127.0.0.1'
 mqtt_port: 1883
 mqtt_username: ""
 mqtt_password: ""
+mqtt_topic_set_height: "desk-mqtt/set-desk-height"
+mqtt_topic_get_relative_height: "desk-mqtt/get-desk-relative-height"
+mqtt_topic_get_desk_moving: "desk-mqtt/get-desk-moving"
