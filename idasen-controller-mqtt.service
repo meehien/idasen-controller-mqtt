@@ -1,5 +1,6 @@
 [Unit]
 Description=Idasen Desk MQTT service
+Requires=mosquitto.service
 Requires=multi-user.target
 After=multi-user.target
 

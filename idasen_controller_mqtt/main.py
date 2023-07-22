@@ -2,12 +2,11 @@
 
 import os
 import traceback
-import shutil
 import struct
 import argparse
 import yaml
 import asyncio
-import asyncio_mqtt as aiomqtt
+import aiomqtt
 import aiohttp
 from aiohttp import web
 from bleak import BleakClient, BleakError, BleakScanner
@@ -248,7 +247,7 @@ port = config["mqtt_port"]
 username = config["mqtt_username"]
 password = config["mqtt_password"]
 reconnect_interval = 5
-beacon_interval = 60
+beacon_interval = 10
 
 set_height = config["mqtt_topic_set_height"]
 get_relative_height = config["mqtt_topic_get_relative_height"]
@@ -350,13 +349,15 @@ async def move_to(client, target, log=print, mqtt_client=None):
 		await move_to_target(client, target)
 		await asyncio.sleep(0.5)
 		height, speed = await get_height_speed(client)
-		await mqtt_client.publish(get_relative_height, "{:4.0f}".format((rawToMM(height)-BASE_HEIGHT)/10))
+		if mqtt_client:
+			await mqtt_client.publish(get_relative_height, "{:4.0f}".format((rawToMM(height)-BASE_HEIGHT)/10))
 		if speed == 0:
 			break
 		if speed != 0:
-			await mqtt_client.publish(get_desk_moving, 'on')
-        #log("Height: {:4.0f}mm Speed: {:2.0f}mm/s".format(rawToMM(height), rawToSpeed(speed)))
-
+			if mqtt_client:
+				await mqtt_client.publish(get_desk_moving, 'on')
+			#log("Height: {:4.0f}mm Speed: {:2.0f}mm/s".format(rawToMM(height), rawToSpeed(speed)))
+			pass
 
 async def scan():
 	"""Scan for a bluetooth device with the configured address and return it or return all devices if no address specified"""
@@ -574,7 +575,7 @@ async def main():
 			print("\rDisconnecting\r", end="")
 			await stop(client)
 			await disconnect(client)
-			print("Disconnected         ")
+			print("Disconnected")
 
 
 def init():
